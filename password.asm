@@ -4,13 +4,20 @@
 ;---------------------------------------------------------
         cmd_addr equ 82h
 
-        ;password dw m, a, x, i, m, l, o, h
-        password dw 6Dh, 61h, 78h, 69h, 6Dh, 6Ch, 6Fh, 68h
+        god_dame_word dw 4Eh, 78h, 69h, 6Ch, 41h, 6Dh, 6Dh, 6Ch
+        password      dw 69h, 69h, 69h, 69h, 69h, 69h, 69h, 69h
+        another_trash dw 4Eh, 45h, 53h, 4Ch, 40h, 6Dh, 41h, 54h
 
-        WrPasw   db 'Wrong password!$'
-        RgPasw   db 'Right password!$'
+        WrPasw    db 'Wrong password!$'
+        RgPasw    db 'Right password!$'
+        PlsWrPasw db 'Please, write your password:$'
+        Frame     db '=======================================$'
 
+        hs       dw 35Fh
+        hs1      dw 03ADh
         pasw_len dw 8h
+
+        users_pasw dw 10 dup(?)
 ;--------------------------------------------------------
 
 .code
@@ -20,18 +27,19 @@ Main    proc
 
         cld
 
-        mov dx, 0h
-        mov cx, 8h
-        mov di, 0h
-        mov si, cmd_addr
+        mov [users_pasw], 10h
 
-        call HashDefaulPasw
+        call EnterPassword
+
+        call next_line
+
+        call HashDefaultPasw
 
         call HashEnteredPasw
 
         call HashCmp
 
-        ;call CheckPassword
+        call write_frame
 
         mov ax, 4c00h
         int 21h
@@ -40,6 +48,26 @@ Main    proc
 
 ;---------------------------------------------------------
 
+EnterPassword   proc
+
+        call write_frame
+
+        mov ah, 09h
+        mov dx, offset PlsWrPasw
+        int 21h
+
+        call next_line
+
+        mov ah, 0Ah
+        mov dx, offset users_pasw
+        int 21h
+
+        call next_line
+
+        endp
+        ret
+
+;-------------------------------------------------------------------------------
 
 ;-----------------HASH_CMP-------------------
 ;HashCmp compares two hash-sums: defaul and users, which
@@ -50,6 +78,8 @@ Main    proc
 ;------------------------------------------
 
 HashCmp proc
+
+        mov bp, hs
 
         cmp dx, bp
         jne Wrong
@@ -79,7 +109,7 @@ Wrong:
 ;Distr: cx, bp, si, di
 ;-----------------------------------------
 
-HashDefaulPasw   proc
+HashDefaultPasw   proc
 
         mov cx, pasw_len
         mov di, 0h
@@ -87,7 +117,8 @@ HashDefaulPasw   proc
 
 add_ascki1:
 
-        add bp, [password + di]
+        mov ax, [password + di]
+        add bp, ax
         add di, 2h
 
         loop add_ascki1
@@ -109,14 +140,18 @@ HashEnteredPasw proc
 
         mov cx, pasw_len
         mov dx, 0h
-
-        mov si, cmd_addr
+        mov ax, 0h
+        mov di, 1h
 
 add_aski2:
 
-        lodsb
-
+        mov ax, [users_pasw + di]
+        mov al, 0h
+        mov al, ah
+        mov ah, 0h
         add dx, ax
+
+        inc di
 
         loop add_aski2
 
@@ -190,6 +225,31 @@ CheckPassword   proc
         ret
         endp
 
+;------------------------------------------------------------------------------
+
+next_line proc
+
+        mov ah, 02h
+        mov dl, 0Ah
+        int 21h
+
+        endp
+        ret
+
+;-------------------------------------------------------------------------------
+
+write_frame proc
+
+        call next_line
+
+        mov ah, 09h
+        mov dx, offset Frame
+        int 21h
+
+        call next_line
+
+        endp
+        ret
 ;-----------------------------------------------------------
 
 end     Main
